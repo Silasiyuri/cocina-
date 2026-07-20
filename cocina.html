@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2NIGHT - Konyhai Panel</title>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
+        h1 { margin: 0; color: #3ecf8e; font-size: 1.8rem; display: flex; align-items: center; gap: 15px; }
+        .grid-rendelesek { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        
+        .kartya { background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .kartya-fejlec { display: flex; justify-content: space-between; border-bottom: 1px dashed #475569; padding-bottom: 8px; margin-bottom: 10px; }
+        .id-szam { font-weight: bold; color: #cbd5e1; font-size: 1.2rem; }
+        .idopont { color: #94a3b8; font-size: 0.85rem; }
+        .cim { font-weight: bold; color: #d6af37; margin-bottom: 10px; font-size: 1rem; }
+        .tetelek { white-space: pre-wrap; font-size: 1.1rem; background: #0f172a; padding: 10px; border-radius: 4px; border-left: 3px solid #3ecf8e; margin-bottom: 10px; color: #fff; }
+        .megjegyzes { font-style: italic; color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; }
+        
+        /* Efecto visual parpadeante rojo si el pedido está sonando y requiere impresión */
+        .kartya.szirénázik { border: 2px solid #ef4444; animation: riasztoKartya 1s infinite alternate; }
+        @keyframes riasztoKartya {
+            0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); background: #1e293b; }
+            100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); background: #2d1e24; }
+        }
+
+        .gombok { display: flex; gap: 10px; }
+        button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+        .btn-nyomtatas { background: #3b82f6; color: white; }
+        .btn-kesz { background: #3ecf8e; color: white; }
+        
+        .btn-audio-unblock { background: #eab308; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; border: none; animation: parpadeoAlerta 1.5s infinite; }
+        .btn-audio-unblock.active { background: #3ecf8e; color: #fff; animation: none; }
+
+        @keyframes parpadeoAlerta {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.03); background: #f59e0b; }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            header, .gombok, .grid-rendelesek { display: none !important; }
+            
+            .kartya-nyomtatasra { 
+                display: block !important; 
+                width: 80mm !important; 
+                font-family: monospace !important;
+                color: black !important;
+                padding: 10px !important;
+                background: white !important;
+            }
+            .tetel-sor { font-size: 1.2rem !important; font-weight: bold !important; border-bottom: 1px dashed black; padding: 5px 0; }
+        }
+        .kartya-nyomtatasra { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>
+            👨‍🍳 Konyhai Monitor 
+            <button id="btnAudioDesbloqueo" class="btn-audio-unblock" onclick="desbloquearSonido()">🔔 HANG AKTIVÁLÁSA</button>
+        </h1>
+        <div id="kapcsolat-statusz" style="color: #64748b;">Kapcsolódás...</div>
+    </header>
+
+    <audio id="audio-riaszto" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
+
+    <div class="grid-rendelesek" id="kont-rendelesek"></div>
+    <div id="nyomtatas-terulet"></div>
+    <script>
+        const ID_PROYECTO = "kpxcpkzmquqyduadnahz";
+        const SUPABASE_KEY = "sb_publishable_XMm1hlrSBzm8iyLWM1iqCA__qBE79B3";
+        let utolsoRendelesDarab = 0;
+        let audioContextNativo = null;
+        
+        // Variables de control para el timbre ininterrumpido
+        let bucleAlarmaSonora = null;
+        let alarmasActivasMapeadas = new Set(); 
+
+        window.desbloquearSonido = function() {
+            const btn = document.getElementById('btnAudioDesbloqueo');
+            try {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContextNativo = new AudioContext();
+                forzarPitidoCocina(800, 0.1);
+                if (btn) {
+                    btn.innerText = "🟢 HANG AKTÍV (Bucle listo)";
+                    btn.className = "btn-audio-unblock active";
+                }
+            } catch (e) {
+                alert("Nem sikerült elindítani a hangmotort.");
+            }
+        };
+
+        function forzarPitidoCocina(frecuencia, duracion) {
+            if (!audioContextNativo) return;
+            try {
+                const oscilador = audioContextNativo.createOscillator();
+                const ganancia = audioContextNativo.createGain();
+                oscilador.type = 'sine';
+                oscilador.frequency.value = frecuencia;
+                ganancia.gain.setValueAtTime(0.4, audioContextNativo.currentTime);
+                ganancia.gain.exponentialRampToValueAtTime(0.01, audioContextNativo.currentTime + duracion);
+                oscilador.connect(ganancia);
+                ganancia.connect(audioContextNativo.destination);
+                oscilador.start();
+                oscilador.stop(audioContextNativo.currentTime + duracion);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function betoltRendelesek() {
+            const statuszId = document.getElementById('kapcsolat-statusz');
+            const urlEndpoint = `https://${ID_PROYECTO}.supabase.co/rest/v1/rpc/leer_comandas_activas`;
+
+            try {
+                const respuesta = await fetch(urlEndpoint, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' }
+                });
+
+                if (!respuesta.ok) throw new Error("API hiba");
+                const rendelések = await respuesta.json();
+
+                if(statuszId) {
+                    statuszId.innerText = "Frissítve: " + new Date().toLocaleTimeString();
+                    statuszId.style.color = "#3ecf8e";
+                }
+
+                if (rendelések.length > utolsoRendelesDarab && utolsoRendelesDarab !== 0) {
+                    rendelések.forEach(r => {
+                        if (r.id > utolsoRendelesDarab || utolsoRendelesDarab == 0) {
+                            alarmasActivasMapeadas.add(Number(r.id));
+                        }
+                    });
+                    arrancarBucleDeTimbreContinuo();
+                }
+                utolsoRendelesDarab = rendelések.length;
+
+                const kont = document.getElementById('kont-rendelesek');
+                if (!kont) return;
+
+                if (rendelések.length === 0) {
+                    kont.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-size: 1.2rem; margin-top: 50px;">Nincs aktív rendelés a konyhán. 🙌</p>`;
+                    pararBucleDeTimbreCompleto();
+                    return;
+                }
+
+                let html = '';
+                rendelések.forEach(r => {
+                    const ido = new Date(r.created_at).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+                    const esRuidoso = alarmasActivasMapeadas.has(Number(r.id)) ? 'szirénázik' : '';
+                    
+                    html += `
+                        <div class="kartya ${esRuidoso}" id="rendeles-${r.id}">
+                            <div>
+                                <div class="kartya-fejlec">
+                                    <span class="id-szam">#${r.id}</span>
+                                    <span class="idopont">🕒 ${ido}</span>
+                                </div>
+                                <div class="cim">📍 ${r.address || 'Nincs cím'}</div>
+                                <div class="tetelek">${r.items || 'Üres'}</div>
+                                ${r.notes ? `<div class="megjegyzes">💬 Megjegyzés: ${r.notes}</div>` : ''}
+                                ${r.total_price ? `<div style="color:#d6af37; font-weight:bold; margin-top:5px;">💰 Összeg: ${r.total_price} Ft</div>` : ''}
+                            </div>
+                            <div class="gombok">
+                                <button class="btn-nyomtatas" onclick="nyomtatBlokk(${r.id}, '${escapeHtml(r.address || '')}', '${escapeHtml(r.items || '')}', '${escapeHtml(r.notes || '')}')">🖨️ Blokksütés</button>
+                                <button class="btn-kesz" onclick="rendelesKesz(${r.id})">✅ Kész</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                kont.innerHTML = html;
+
+            } catch (err) {
+                if(statuszId) {
+                    statuszId.innerText = "Csatlakozási hiba.";
+                    statuszId.style.color = "red";
+                }
+            }
+        }
+        function arrancarBucleDeTimbreContinuo() {
+            if (bucleAlarmaSonora !== null || !audioContextNativo) return;
+            
+            bucleAlarmaSonora = setInterval(() => {
+                if (alarmasActivasMapeadas.size === 0) {
+                    pararBucleDeTimbreCompleto();
+                    return;
+                }
+                forzarPitidoCocina(950, 0.25);
+                setTimeout(() => forzarPitidoCocina(950, 0.25), 300);
+            }, 1200);
+        }
+
+        function pararBucleDeTimbreCompleto() {
+            if (bucleAlarmaSonora !== null) {
+                clearInterval(bucleAlarmaSonora);
+                bucleAlarmaSonora = null;
+            }
+        }
+
+        window.rendelesKesz = async function(id) {
+            alarmasActivasMapeadas.delete(Number(id));
+            if (alarmasActivasMapeadas.size === 0) pararBucleDeTimbreCompleto();
+
+            const urlUpdate = `https://${ID_PROYECTO}.supabase.co/rest/v1/comandas?id=eq.${id}`;
+            try {
+                await fetch(urlUpdate, {
+                    method: 'PATCH',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                    body: JSON.stringify({ status: 'completed' })
+                });
+                betoltRendelesek();
+            } catch (err) {
+                alert("Hiba történt a lezárás során.");
+            }
+        };
+
+        function escapeHtml(string) {
+            return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;').replace(/\n/g, '\\n');
+        }
+
+        betoltRendelesek();
+        setInterval(betoltRendelesek, 4000);
+    </script>
+
+    <script>
+        function nyomtatBlokk(id, address, items, notes) {
+            alarmasActivasMapeadas.delete(Number(id));
+            if (alarmasActivasMapeadas.size === 0) {
+                pararBucleDeTimbreCompleto();
+            }
+            
+            const tarjetaGrafica = document.getElementById(`rendeles-${id}`);
+            if (tarjetaGrafica) tarjetaGrafica.classList.remove('szirénázik');
+
+            const terulet = document.getElementById('nyomtatas-terulet');
+            const tisztaItems = items.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+            
+            terulet.innerHTML = `
+                <div class="kartya-nyomtatasra">
+                    <h2 style="text-align:center; margin:0; font-size:1.4rem;">*** 2NIGHT PIZZA ***</h2>
+                    <p style="text-align:center; margin:5px 0; font-size:0.9rem;">RENDELÉSI BLOKK</p>
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <p style="margin:5px 0; font-size:1.1rem;"><strong>Rendelés száma:</strong> #${id}</p>
+                    <p style="margin:5px 0;"><strong>Időpont:</strong> ${new Date().toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'})}</p>
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <p style="margin:5px 0; font-size:1.1rem;"><strong>Cím / Átvétel:</strong><br>${address}</p>
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <p style="margin:5px 0; font-size:0.9rem;">TÉTELEK:</p>
+                    <div class="tetel-sor">${tisztaItems}</div>
+                    ${notes ? `<p style="margin:10px 0; font-style:italic;"><strong>Megjegyzés:</strong><br>${notes}</p>` : ''}
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <h3 style="text-align:center; margin:10px 0 0 0; font-size:1.1rem;">JÓ ÉTVÁGYAT! JÓ MUNKÁT!</h3>
+                </div>
+            `;
+            window.print();
+        }
+    </script>
+</body>
+</html>
