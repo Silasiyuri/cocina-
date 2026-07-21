@@ -70,6 +70,9 @@
 
     <div class="grid-rendelesek" id="kont-rendelesek"></div>
     <div id="nyomtatas-terulet"></div>
+      
+    
+    
        <script>
         const ID_PROYECTO = "kpxcpkzmquqyduadnahz";
         const SUPABASE_KEY = "sb_publishable_XMm1hlrSBzm8iyLWM1iqCA__qBE79B3";
@@ -80,32 +83,30 @@
         let alarmasActivasMapeadas = new Set(); 
         let interactuadoFisicamente = false;
 
-        // 📱 DESPERTADOR EN CADENA: Indispensable para saltarse el bloqueo de Android/iPad
         window.desbloquearSonido = function() {
             const btn = document.getElementById('btnAudioDesbloqueo');
             interactuadoFisicamente = true;
             
             try {
-                // 1. Despierta el motor de sonido de hardware
                 window.AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioContextNativo = new AudioContext();
                 if (audioContextNativo.state === 'suspended') {
                     audioContextNativo.resume();
                 }
                 
-                // 2. Despierta el reproductor de archivos del navegador
                 const audioNativo = document.getElementById('audio-riaszto');
                 if (audioNativo) {
                     audioNativo.play().then(() => {
                         audioNativo.pause();
                         audioNativo.currentTime = 0;
-                    }).catch(e => console.log("Audio file wake error"));
+                    }).catch(e => console.log("Audio wake error"));
                 }
 
+                // Pitido corto de confirmación al activar
                 forzarPitidoCocina(800, 0.1);
                 
                 if (btn) {
-                    btn.innerText = "🟢 HANG AKTÍV (Táblagép kész)";
+                    btn.innerText = "🟢 SZIRENA AKTÍV (Táblagép kész)";
                     btn.className = "btn-audio-unblock active";
                 }
             } catch (e) {
@@ -116,7 +117,6 @@
         function forzarPitidoCocina(frecuencia, duracion) {
             if (!audioContextNativo) return;
             try {
-                // Si la tablet suspendió el audio por inactividad, lo reanudamos a la fuerza
                 if (audioContextNativo.state === 'suspended') {
                     audioContextNativo.resume();
                 }
@@ -124,12 +124,48 @@
                 const ganancia = audioContextNativo.createGain();
                 oscilador.type = 'sine';
                 oscilador.frequency.value = frecuencia;
-                ganancia.gain.setValueAtTime(0.5, audioContextNativo.currentTime);
+                ganancia.gain.setValueAtTime(0.3, audioContextNativo.currentTime);
                 ganancia.gain.exponentialRampToValueAtTime(0.01, audioContextNativo.currentTime + duracion);
                 oscilador.connect(ganancia);
                 ganancia.connect(audioContextNativo.destination);
                 oscilador.start();
-                oscidador.stop(audioContextNativo.currentTime + duracion);
+                oscilador.stop(audioContextNativo.currentTime + duracion);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ==========================================================================
+        // 🚨 MOTOR DE SIRENA MODULADA (Sube y baja el tono de forma infinita)
+        // ==========================================================================
+        function emitirOndaSirenaPolicia(duracionTotal) {
+            if (!audioContextNativo) return;
+            try {
+                if (audioContextNativo.state === 'suspended') audioContextNativo.resume();
+
+                const oscilador = audioContextNativo.createOscillator();
+                const ganancia = audioContextNativo.createGain();
+                
+                oscilador.type = 'sawtooth'; // Onda de sierra para que suene con más potencia en la cocina
+                
+                const tiempoActual = audioContextNativo.currentTime;
+                
+                // Efecto sirena: sube y baja el tono matemáticamente cada 0.3 segundos
+                oscilador.frequency.setValueAtTime(600, tiempoActual);
+                oscilador.frequency.linearRampToValueAtTime(1100, tiempoActual + 0.3);
+                oscilador.frequency.linearRampToValueAtTime(600, tiempoActual + 0.6);
+                oscilador.frequency.linearRampToValueAtTime(1100, tiempoActual + 0.9);
+                oscilador.frequency.linearRampToValueAtTime(600, tiempoActual + 1.2);
+                
+                ganancia.gain.setValueAtTime(0.3, tiempoActual);
+                ganancia.gain.linearRampToValueAtTime(0.3, tiempoActual + duracionTotal - 0.1);
+                ganancia.gain.exponentialRampToValueAtTime(0.01, tiempoActual + duracionTotal);
+                
+                oscilador.connect(ganancia);
+                ganancia.connect(audioContextNativo.destination);
+                
+                oscilador.start();
+                oscilador.stop(tiempoActual + duracionTotal);
             } catch (err) {
                 console.error(err);
             }
@@ -208,14 +244,13 @@
         function arrancarBucleDeTimbreContinuo() {
             if (bucleAlarmaSonora !== null || !interactuadoFisicamente) return;
             
+            // Ejecuta el ciclo completo de la sirena (1.2 segundos de duración) continuamente
             bucleAlarmaSonora = setInterval(() => {
                 if (alarmasActivasMapeadas.size === 0) {
                     pararBucleDeTimbreCompleto();
                     return;
                 }
-                // Secuencia repetitiva agresiva para alertar al cocinero en la tablet
-                forzarPitidoCocina(980, 0.25);
-                setTimeout(() => forzarPitidoCocina(980, 0.25), 300);
+                emitirOndaSirenaPolicia(1.2);
             }, 1250);
         }
 
@@ -253,6 +288,7 @@
 
     <script>
         function nyomtatBlokk(id, address, items, notes) {
+            // Apaga la sirena para este pedido específico al darle a imprimir
             alarmasActivasMapeadas.delete(Number(id));
             if (alarmasActivasMapeadas.size === 0) {
                 pararBucleDeTimbreCompleto();
