@@ -3,36 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2NIGHT - Konyhai Panel (Nagy Betűk)</title>
+    <title>2NIGHT - Konyhai Panel (Nagy Betűk & Sziréna)</title>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 25px; }
         h1 { margin: 0; color: #3ecf8e; font-size: 2.2rem; display: flex; align-items: center; gap: 15px; }
         .grid-rendelesek { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 25px; }
         
-        /* TARJETAS AMPLIADAS */
+        /* TARJETAS GIGANTES DE PANTALLA */
         .kartya { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
         .kartya-fejlec { display: flex; justify-content: space-between; border-bottom: 2px dashed #475569; padding-bottom: 12px; margin-bottom: 15px; }
         .id-szam { font-weight: bold; color: #ffffff; font-size: 1.6rem; }
         .idopont { color: #94a3b8; font-size: 1.1rem; font-weight: bold; }
         
-        /* DIRECCIÓN Y MESA GIGANTE */
         .cim { font-weight: bold; color: #d6af37; margin-bottom: 15px; font-size: 1.4rem; line-height: 1.4; }
-        
-        /* TEXTO DE LAS PIZZAS EN TAMAÑO MAXI (LETRAS MUY GRANDES) */
         .tetelek { white-space: pre-wrap; font-size: 1.8rem; font-weight: bold; background: #0f172a; padding: 15px; border-radius: 6px; border-left: 6px solid #3ecf8e; margin-bottom: 15px; color: #ffffff; line-height: 1.5; }
-        
-        /* NOTAS Y PRECIOS DESTACADOS */
         .megjegyzes { font-style: italic; color: #cbd5e1; font-size: 1.2rem; margin-bottom: 20px; background: rgba(234,179,8,0.1); padding: 10px; border-radius: 4px; border-left: 4px solid #eab308; }
-        .ar-kiiras { color: #3ecf8e; font-weight: bold; margin-top: 5px; font-size: 1.3rem; letter-spacing: 0.5px; }
+        .ar-kiiras { color: #3ecf8e; font-weight: bold; margin-top: 5px; font-size: 1.3rem; }
 
-        .kartya.szirénázik { border: 3px solid #ef4444; animation: riasztoKartya 0.8s infinite alternate; }
+        /* EFECTO VISUAL DE SIRENA ACTIVA */
+        .kartya.szirénázik { border: 3px solid #ef4444; animation: riasztoKartya 0.6s infinite alternate; }
         @keyframes riasztoKartya {
             0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); background: #1e293b; }
-            100% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); background: #3b111a; }
+            100% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.9); background: #3b111a; }
         }
 
-        /* BOTONES MÁS GRANDES PARA EL TACTIL */
         .gombok { display: flex; gap: 15px; }
         button { flex: 1; padding: 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1.1rem; text-transform: uppercase; }
         .btn-nyomtatas { background: #3b82f6; color: white; }
@@ -89,11 +84,12 @@
                 if (chipSonidoHardware.state === 'suspended') chipSonidoHardware.resume();
                 const oscilador = chipSonidoHardware.createOscillator();
                 const nodoGanancia = chipSonidoHardware.createGain();
+                
                 oscilador.type = 'sawtooth'; 
                 const tiempoActual = chipSonidoHardware.currentTime;
                 
                 oscilador.frequency.setValueAtTime(frecuencia, tiempoActual);
-                oscilador.frequency.linearRampToValueAtTime(frecuencia + 450, tiempoActual + (duracion / 2));
+                oscilador.frequency.linearRampToValueAtTime(frecuencia + 500, tiempoActual + (duracion / 2));
                 oscilador.frequency.linearRampToValueAtTime(frecuencia, tiempoActual + duracion);
                 
                 nodoGanancia.gain.setValueAtTime(0.4, tiempoActual);
@@ -178,9 +174,9 @@
                 }
             }
         }
-
         function arrancarBucleSirenaInfinita() {
             if (bucleSirenaEmergencia !== null || !tabletAutorizadaFisicamente) return;
+            
             bucleSirenaEmergencia = setInterval(() => {
                 if (alarmasActivasMapeadas.size === 0) {
                     pararBucleSirena();
@@ -247,7 +243,8 @@
                 const docIframe = iframeElemento.contentWindow.document;
                 
                 docIframe.open();
-                docIframe.write(`<pre style="font-family:monospace; font-size:16px; font-weight:bold; color:black; margin:0; padding:10px;">${estructuraTicketRaw}</pre>`);
+                // Tipografía gigante y en negrita configurada a 22px para la ticketera
+                docIframe.write(`<pre style="font-family:monospace; font-size:22px; font-weight:bold; color:black; margin:0; padding:5px; line-height:1.4;">${estructuraTicketRaw}</pre>`);
                 docIframe.close();
 
                 setTimeout(() => {
