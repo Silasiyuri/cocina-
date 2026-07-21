@@ -3,57 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2NIGHT - Konyhai Panel (Nagy Betűk & Sziréna)</title>
+    <title>2NIGHT - Konyhai Panel</title>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 25px; }
-        h1 { margin: 0; color: #3ecf8e; font-size: 2.2rem; display: flex; align-items: center; gap: 15px; }
-        .grid-rendelesek { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 25px; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
+        h1 { margin: 0; color: #3ecf8e; font-size: 1.8rem; display: flex; align-items: center; gap: 15px; }
+        .grid-rendelesek { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         
-        .kartya { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
-        .kartya-fejlec { display: flex; justify-content: space-between; border-bottom: 2px dashed #475569; padding-bottom: 12px; margin-bottom: 15px; }
-        .id-szam { font-weight: bold; color: #ffffff; font-size: 1.6rem; }
-        .idopont { color: #94a3b8; font-size: 1.1rem; font-weight: bold; }
+        .kartya { background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .kartya-fejlec { display: flex; justify-content: space-between; border-bottom: 1px dashed #475569; padding-bottom: 8px; margin-bottom: 10px; }
+        .id-szam { font-weight: bold; color: #cbd5e1; font-size: 1.2rem; }
+        .idopont { color: #94a3b8; font-size: 0.85rem; }
+        .cim { font-weight: bold; color: #d6af37; margin-bottom: 10px; font-size: 1rem; }
+        .tetelek { white-space: pre-wrap; font-size: 1.1rem; background: #0f172a; padding: 10px; border-radius: 4px; border-left: 3px solid #3ecf8e; margin-bottom: 10px; color: #fff; }
+        .megjegyzes { font-style: italic; color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; }
         
-        .cim { font-weight: bold; color: #d6af37; margin-bottom: 15px; font-size: 1.4rem; line-height: 1.4; }
-        .tetelek { white-space: pre-wrap; font-size: 1.8rem; font-weight: bold; background: #0f172a; padding: 15px; border-radius: 6px; border-left: 6px solid #3ecf8e; margin-bottom: 15px; color: #ffffff; line-height: 1.5; }
-        .megjegyzes { font-style: italic; color: #cbd5e1; font-size: 1.2rem; margin-bottom: 20px; background: rgba(234,179,8,0.1); padding: 10px; border-radius: 4px; border-left: 4px solid #eab308; }
-        .ar-kiiras { color: #3ecf8e; font-weight: bold; margin-top: 5px; font-size: 1.3rem; }
-
-        .kartya.szirénázik { border: 3px solid #ef4444; animation: riasztoKartya 0.6s infinite alternate; }
+        /* Efecto visual parpadeante rojo si el pedido está sonando y requiere impresión */
+        .kartya.szirénázik { border: 2px solid #ef4444; animation: riasztoKartya 1s infinite alternate; }
         @keyframes riasztoKartya {
             0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); background: #1e293b; }
-            100% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.9); background: #3b111a; }
+            100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); background: #2d1e24; }
         }
 
-        .gombok { display: flex; gap: 15px; }
-        button { flex: 1; padding: 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1.1rem; text-transform: uppercase; }
+        .gombok { display: flex; gap: 10px; }
+        button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
         .btn-nyomtatas { background: #3b82f6; color: white; }
         .btn-kesz { background: #3ecf8e; color: white; }
         
-        .btn-audio-unblock { background: #eab308; color: #000; padding: 12px 24px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; border: none; }
-        .btn-audio-unblock.active { background: #3ecf8e; color: #fff; }
+        .btn-audio-unblock { background: #eab308; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; border: none; animation: parpadeoAlerta 1.5s infinite; }
+        .btn-audio-unblock.active { background: #3ecf8e; color: #fff; animation: none; }
 
-        /* ==========================================================================
-           REGLA DE IMPRESIÓN FORZADA EN TAMAÑO GIGANTE (MODELO BLOC ESTÁNDAR)
-           ========================================================================== */
+        @keyframes parpadeoAlerta {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.03); background: #f59e0b; }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
         @media print {
             body { background: white !important; color: black !important; padding: 0 !important; }
             header, .gombok, .grid-rendelesek { display: none !important; }
             
-            #nyomtatas-terulet-escondido { 
+            .kartya-nyomtatasra { 
                 display: block !important; 
-                width: 100% !important;
+                width: 80mm !important; 
                 font-family: monospace !important;
                 color: black !important;
-                padding: 0 !important;
+                padding: 10px !important;
                 background: white !important;
-                font-size: 26px !important; /* TIPOGRAFÍA GIGANTE REAL PARA LA TICKETERA */
-                font-weight: 900 !important;
-                line-height: 1.5 !important;
             }
-            pre { font-size: 26px !important; font-weight: 900 !important; white-space: pre-wrap !important; }
+            .tetel-sor { font-size: 1.2rem !important; font-weight: bold !important; border-bottom: 1px dashed black; padding: 5px 0; }
         }
+        .kartya-nyomtatasra { display: none; }
     </style>
 </head>
 <body>
@@ -61,46 +61,102 @@
     <header>
         <h1>
             👨‍🍳 Konyhai Monitor 
-            <button id="btnAudioDesbloqueo" class="btn-audio-unblock" onclick="desbloquearSirenaMovel()">⚠️ HANG ÉS NYOMTATÁS ACTIVAR</button>
+            <button id="btnAudioDesbloqueo" class="btn-audio-unblock" onclick="desbloquearSonido()">🔔 HANG AKTIVÁLÁSA</button>
         </h1>
-        <div id="kapcsolat-statusz" style="color: #64748b; font-size: 1.1rem; font-weight: bold;">Kapcsolódás...</div>
+        <div id="kapcsolat-statusz" style="color: #64748b;">Kapcsolódás...</div>
     </header>
 
-    <!-- ARCHIVO DE AUDIO DE SIRENA REAL DE RESPALDO (INMUNE AL BLOQUEO DE FILTROS MOVILES) -->
-    <audio id="audio-riaszto" src="https://google.com" loop preload="auto"></audio>
+    <audio id="audio-riaszto" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
 
     <div class="grid-rendelesek" id="kont-rendelesek"></div>
-    <div id="nyomtatas-terulet-escondido"></div>
-    <script>
+    <div id="nyomtatas-terulet"></div>
+      
+    
+    
+          <script>
         const ID_PROYECTO = "kpxcpkzmquqyduadnahz";
         const SUPABASE_KEY = "sb_publishable_XMm1hlrSBzm8iyLWM1iqCA__qBE79B3";
         let utolsoRendelesDarab = 0;
+        let audioContextNativo = null;
         
+        let bucleAlarmaSonora = null;
         let alarmasActivasMapeadas = new Set(); 
-        let tabletAutorizadaFisicamente = false;
+        let interactuadoFisicamente = false;
 
-        // ACTIVACIÓN DE LA MAÑANA: Despierta el canal físico del reproductor de la tablet
-        window.desbloquearSirenaMovel = function() {
+        // 📱 ACTIVADOR MAESTRO PARA TABLETS: Despierta físicamente el chip de sonido
+        window.desbloquearSonido = function() {
             const btn = document.getElementById('btnAudioDesbloqueo');
-            const audio = document.getElementById('audio-riaszto');
-            tabletAutorizadaFisicamente = true;
+            interactuadoFisicamente = true;
             
-            if (audio) {
-                audio.muted = false;
-                audio.play().then(() => {
-                    audio.pause(); // Reproduce y pausa para romper el cortafuegos de Android/iOS
-                    audio.currentTime = 0;
-                    if (btn) {
-                        btn.innerText = "🟢 SIRENA REGISTRADA (Táblagép kész)";
-                        btn.className = "btn-audio-unblock active";
-                    }
-                }).catch(e => {
-                    alert("Kérjük, engedélyezze a hangot a böngésző beállításaiban!");
-                });
+            try {
+                // Forzamos la creación del contexto de audio nativo del procesador móvil
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContextNativo = new AudioContext();
+                
+                if (audioContextNativo.state === 'suspended') {
+                    audioContextNativo.resume();
+                }
+                
+                // Despierta de forma simultánea el lector de archivos de respaldo
+                const audioNativo = document.getElementById('audio-riaszto');
+                if (audioNativo) {
+                    audioNativo.muted = false;
+                    audioNativo.play().then(() => {
+                        audioNativo.pause();
+                        audioNativo.currentTime = 0;
+                    }).catch(e => console.log("Wake bypass"));
+                }
+
+                // Genera una micro-onda inmediata para confirmar que la tablet abrió los altavoces
+                forzarSirenaMovil(0.1);
+                
+                if (btn) {
+                    btn.innerText = "🟢 SIRENA AKTÍV (Táblagép készen áll)";
+                    btn.className = "btn-audio-unblock active";
+                }
+            } catch (e) {
+                alert("Nem sikerült elindítani a hangmotort. Kérjük frissítse a böngészőt.");
             }
         };
 
-        // ESCÁNER DE SUPABASE REAL EN TIEMPO REAL
+        // 🚨 SINTETIZADOR DIGITAL INDESTRUCTIBLE PARA ANDROID / IPAD
+        function forzarSirenaMovil(duracion) {
+            if (!audioContextNativo) return;
+            try {
+                // Si la tablet intentó suspender el audio para ahorrar batería, lo despertamos en este milisegundo
+                if (audioContextNativo.state === 'suspended') {
+                    audioContextNativo.resume();
+                }
+
+                const oscilador = audioContextNativo.createOscillator();
+                const ganancia = audioContextNativo.createGain();
+                
+                // Tipo sawtooth (diente de sierra) para generar el chirrido penetrante de las sirenas de fábrica
+                oscilador.type = 'sawtooth'; 
+                
+                const tiempoActual = audioContextNativo.currentTime;
+                
+                // Modulación matemática agresiva: El tono oscila violentamente entre 550Hz y 1050Hz cada 0.2 segundos
+                oscilador.frequency.setValueAtTime(550, tiempoActual);
+                oscilador.frequency.linearRampToValueAtTime(1050, tiempoActual + 0.25);
+                oscilador.frequency.linearRampToValueAtTime(550, tiempoActual + 0.5);
+                oscilador.frequency.linearRampToValueAtTime(1050, tiempoActual + 0.75);
+                oscilador.frequency.linearRampToValueAtTime(550, tiempoActual + 1.0);
+                
+                ganancia.gain.setValueAtTime(0.4, tiempoActual);
+                ganancia.gain.linearRampToValueAtTime(0.4, tiempoActual + duracion - 0.05);
+                ganancia.gain.exponentialRampToValueAtTime(0.001, tiempoActual + duracion);
+                
+                oscilador.connect(ganancia);
+                ganancia.connect(audioContextNativo.destination);
+                
+                oscilador.start(tiempoActual);
+                oscilador.stop(tiempoActual + duracion);
+            } catch (err) {
+                console.error("Hardware audio collision:", err);
+            }
+        }
+
         async function betoltRendelesek() {
             const statuszId = document.getElementById('kapcsolat-statusz');
             const urlEndpoint = `https://${ID_PROYECTO}.supabase.co/rest/v1/rpc/leer_comandas_activas`;
@@ -119,19 +175,13 @@
                     statuszId.style.color = "#3ecf8e";
                 }
 
-                // SI ENTRA UN PEDIDO NUEVO, ACTIVA LA COLA DE ALARMAS Y ENCIENDE EL AUDIO
                 if (rendelések.length > utolsoRendelesDarab && utolsoRendelesDarab !== 0) {
                     rendelések.forEach(r => {
                         if (r.id > utolsoRendelesDarab || utolsoRendelesDarab == 0) {
                             alarmasActivasMapeadas.add(Number(r.id));
                         }
                     });
-                    
-                    const audio = document.getElementById('audio-riaszto');
-                    if (audio && tabletAutorizadaFisicamente) {
-                        audio.currentTime = 0;
-                        audio.play().catch(e => console.log("Audio block"));
-                    }
+                    arrancarBucleDeTimbreContinuo();
                 }
                 utolsoRendelesDarab = rendelések.length;
 
@@ -139,8 +189,8 @@
                 if (!kont) return;
 
                 if (rendelések.length === 0) {
-                    kont.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-size: 1.4rem; margin-top: 50px;">Nincs aktív rendelés a konyhán. 🙌</p>`;
-                    apagarSirenaCompleta();
+                    kont.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-size: 1.2rem; margin-top: 50px;">Nincs aktív rendelés a konyhán. 🙌</p>`;
+                    pararBucleDeTimbreCompleto();
                     return;
                 }
 
@@ -159,10 +209,10 @@
                                 <div class="cim">📍 ${r.address || 'Nincs cím'}</div>
                                 <div class="tetelek">${r.items || 'Üres'}</div>
                                 ${r.notes ? `<div class="megjegyzes">💬 Megjegyzés: ${r.notes}</div>` : ''}
-                                ${r.total_price ? `<div class="ar-kiiras">💰 Összeg: ${r.total_price} Ft</div>` : ''}
+                                ${r.total_price ? `<div style="color:#d6af37; font-weight:bold; margin-top:5px;">💰 Összeg: ${r.total_price} Ft</div>` : ''}
                             </div>
                             <div class="gombok">
-                                <button class="btn-nyomtatas" onclick="imprimirDirectoYApagarSirena(${r.id}, '${escapeHtml(r.address || '')}', '${escapeHtml(r.items || '')}', '${escapeHtml(r.notes || '')}')">🖨️ Blokksütés</button>
+                                <button class="btn-nyomtatas" onclick="nyomtatBlokk(${r.id}, '${escapeHtml(r.address || '')}', '${escapeHtml(r.items || '')}', '${escapeHtml(r.notes || '')}')">🖨️ Blokksütés</button>
                                 <button class="btn-kesz" onclick="rendelesKesz(${r.id})">✅ Kész</button>
                             </div>
                         </div>
@@ -177,18 +227,29 @@
                 }
             }
         }
+        function arrancarBucleDeTimbreContinuo() {
+            if (bucleAlarmaSonora !== null || !interactuadoFisicamente) return;
+            
+            // Dispara el ciclo continuo de la sirena (1.0 segundo de duración) cada 1.05 segundos repetidamente
+            bucleAlarmaSonora = setInterval(() => {
+                if (alarmasActivasMapeadas.size === 0) {
+                    pararBucleDeTimbreCompleto();
+                    return;
+                }
+                forzarSirenaMovil(1.0);
+            }, 1050);
+        }
 
-        function apagarSirenaCompleta() {
-            const audio = document.getElementById('audio-riaszto');
-            if (audio) {
-                audio.pause();
-                audio.currentTime = 0;
+        function pararBucleDeTimbreCompleto() {
+            if (bucleAlarmaSonora !== null) {
+                clearInterval(bucleAlarmaSonora);
+                bucleAlarmaSonora = null;
             }
         }
 
         window.rendelesKesz = async function(id) {
             alarmasActivasMapeadas.delete(Number(id));
-            if (alarmasActivasMapeadas.size === 0) apagarSirenaCompleta();
+            if (alarmasActivasMapeadas.size === 0) pararBucleDeTimbreCompleto();
 
             const urlUpdate = `https://${ID_PROYECTO}.supabase.co/rest/v1/comandas?id=eq.${id}`;
             try {
@@ -207,47 +268,43 @@
             return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;').replace(/\n/g, '\\n');
         }
 
-        // ==========================================================================
-        // 🖨️ IMPRESIÓN DIRECTA SIN SALIR CON FUENTE GIGANTE REAL (MODELO BLOC)
-        // ==========================================================================
-        window.imprimirDirectoYApagarSirena = function(id, address, items, notes) {
-            // DETENCIÓN INMEDIATA del audio en bucle al pulsar el botón de imprimir
+        betoltRendelesek();
+        setInterval(betoltRendelesek, 4000);
+    </script>
+
+    <script>
+        function nyomtatBlokk(id, address, items, notes) {
+            // Apaga el set ruidoso al presionar el botón de impresión térmica
             alarmasActivasMapeadas.delete(Number(id));
-            if (alarmasActivasMapeadas.size === 0) apagarSirenaCompleta();
+            if (alarmasActivasMapeadas.size === 0) {
+                pararBucleDeTimbreCompleto();
+            }
             
             const tarjetaGrafica = document.getElementById(`rendeles-${id}`);
             if (tarjetaGrafica) tarjetaGrafica.classList.remove('szirénázik');
 
-            const textoPlanoItems = items.replace(/\\n/g, '\n');
-            const estructuraTicketRaw = 
-                `*** 2NIGHT PIZZA ***\n` +
-                `RENDELESI BLOKK\n` +
-                `--------------------------------\n` +
-                `Rendeles szama: #${id}\n` +
-                `Idopont: ${new Date().toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'})}\n` +
-                `--------------------------------\n` +
-                `Cim / Atvetel:\n${address}\n` +
-                `--------------------------------\n` +
-                `TETELEK:\n${textoPlanoItems}\n` +
-                `${notes ? `--------------------------------\nMegjegyzes:\n${notes}\n` : ''}` +
-                `--------------------------------\n` +
-                `JO ETVAGYAT! JO MUNKAT!\n\n\n\n`;
-
-            // Volcamos los datos en la misma página para que @media print aplique la tipografía gigante de 26px
-            const contContenedor = document.getElementById('nyomtatas-terulet-escondido');
-            if (contContenedor) {
-                contContenedor.innerHTML = `<pre>${estructuraTicketRaw}</pre>`;
-                
-                // Llama al sistema de impresión nativo de la tablet
-                window.print();
-                
-                // Limpia el área tras lanzar la orden
-                setTimeout(() => { contContenedor.innerHTML = ""; }, 500);
-            }
-        };
-
-        betoltRendelesek();
-        setInterval(betoltRendelesek, 4000);
+            const terulet = document.getElementById('nyomtatas-terulet');
+            const tisztaItems = items.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+            
+            terulet.innerHTML = `
+                <div class="kartya-nyomtatasra">
+                    <h2 style="text-align:center; margin:0; font-size:1.4rem;">*** 2NIGHT PIZZA ***</h2>
+                    <p style="text-align:center; margin:5px 0; font-size:0.9rem;">RENDELÉSI BLOKK</p>
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <p style="margin:5px 0; font-size:1.1rem;"><strong>Rendelés száma:</strong> #${id}</p>
+                    <p style="margin:5px 0;"><strong>Időpont:</strong> ${new Date().toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'})}</p>
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <p style="margin:5px 0; font-size:1.1rem;"><strong>Cím / Átvétel:</strong><br>${address}</p>
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <p style="margin:5px 0; font-size:0.9rem;">TÉTELEK:</p>
+                    <div class="tetel-sor">${tisztaItems}</div>
+                    ${notes ? `<p style="margin:10px 0; font-style:italic;"><strong>Megjegyzés:</strong><br>${notes}</p>` : ''}
+                    <p style="margin:5px 0;">--------------------------------</p>
+                    <h3 style="text-align:center; margin:10px 0 0 0; font-size:1.1rem;">JÓ ÉTVÁGYAT! JÓ MUNKÁT!</h3>
+                </div>
+            `;
+            window.print();
+        }
     </script>
 </body>
 </html>
