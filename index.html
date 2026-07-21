@@ -73,7 +73,7 @@
       
     
     
-       <script>
+          <script>
         const ID_PROYECTO = "kpxcpkzmquqyduadnahz";
         const SUPABASE_KEY = "sb_publishable_XMm1hlrSBzm8iyLWM1iqCA__qBE79B3";
         let utolsoRendelesDarab = 0;
@@ -83,91 +83,77 @@
         let alarmasActivasMapeadas = new Set(); 
         let interactuadoFisicamente = false;
 
+        // 📱 ACTIVADOR MAESTRO PARA TABLETS: Despierta físicamente el chip de sonido
         window.desbloquearSonido = function() {
             const btn = document.getElementById('btnAudioDesbloqueo');
             interactuadoFisicamente = true;
             
             try {
+                // Forzamos la creación del contexto de audio nativo del procesador móvil
                 window.AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioContextNativo = new AudioContext();
+                
                 if (audioContextNativo.state === 'suspended') {
                     audioContextNativo.resume();
                 }
                 
+                // Despierta de forma simultánea el lector de archivos de respaldo
                 const audioNativo = document.getElementById('audio-riaszto');
                 if (audioNativo) {
+                    audioNativo.muted = false;
                     audioNativo.play().then(() => {
                         audioNativo.pause();
                         audioNativo.currentTime = 0;
-                    }).catch(e => console.log("Audio wake error"));
+                    }).catch(e => console.log("Wake bypass"));
                 }
 
-                // Pitido corto de confirmación al activar
-                forzarPitidoCocina(800, 0.1);
+                // Genera una micro-onda inmediata para confirmar que la tablet abrió los altavoces
+                forzarSirenaMovil(0.1);
                 
                 if (btn) {
-                    btn.innerText = "🟢 SZIRENA AKTÍV (Táblagép kész)";
+                    btn.innerText = "🟢 SIRENA AKTÍV (Táblagép készen áll)";
                     btn.className = "btn-audio-unblock active";
                 }
             } catch (e) {
-                alert("Nem sikerült elindítani a hangmotort.");
+                alert("Nem sikerült elindítani a hangmotort. Kérjük frissítse a böngészőt.");
             }
         };
 
-        function forzarPitidoCocina(frecuencia, duracion) {
+        // 🚨 SINTETIZADOR DIGITAL INDESTRUCTIBLE PARA ANDROID / IPAD
+        function forzarSirenaMovil(duracion) {
             if (!audioContextNativo) return;
             try {
+                // Si la tablet intentó suspender el audio para ahorrar batería, lo despertamos en este milisegundo
                 if (audioContextNativo.state === 'suspended') {
                     audioContextNativo.resume();
                 }
-                const oscilador = audioContextNativo.createOscillator();
-                const ganancia = audioContextNativo.createGain();
-                oscilador.type = 'sine';
-                oscilador.frequency.value = frecuencia;
-                ganancia.gain.setValueAtTime(0.3, audioContextNativo.currentTime);
-                ganancia.gain.exponentialRampToValueAtTime(0.01, audioContextNativo.currentTime + duracion);
-                oscilador.connect(ganancia);
-                ganancia.connect(audioContextNativo.destination);
-                oscilador.start();
-                oscilador.stop(audioContextNativo.currentTime + duracion);
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        // ==========================================================================
-        // 🚨 MOTOR DE SIRENA MODULADA (Sube y baja el tono de forma infinita)
-        // ==========================================================================
-        function emitirOndaSirenaPolicia(duracionTotal) {
-            if (!audioContextNativo) return;
-            try {
-                if (audioContextNativo.state === 'suspended') audioContextNativo.resume();
 
                 const oscilador = audioContextNativo.createOscillator();
                 const ganancia = audioContextNativo.createGain();
                 
-                oscilador.type = 'sawtooth'; // Onda de sierra para que suene con más potencia en la cocina
+                // Tipo sawtooth (diente de sierra) para generar el chirrido penetrante de las sirenas de fábrica
+                oscilador.type = 'sawtooth'; 
                 
                 const tiempoActual = audioContextNativo.currentTime;
                 
-                // Efecto sirena: sube y baja el tono matemáticamente cada 0.3 segundos
-                oscilador.frequency.setValueAtTime(600, tiempoActual);
-                oscilador.frequency.linearRampToValueAtTime(1100, tiempoActual + 0.3);
-                oscilador.frequency.linearRampToValueAtTime(600, tiempoActual + 0.6);
-                oscilador.frequency.linearRampToValueAtTime(1100, tiempoActual + 0.9);
-                oscilador.frequency.linearRampToValueAtTime(600, tiempoActual + 1.2);
+                // Modulación matemática agresiva: El tono oscila violentamente entre 550Hz y 1050Hz cada 0.2 segundos
+                oscilador.frequency.setValueAtTime(550, tiempoActual);
+                oscilador.frequency.linearRampToValueAtTime(1050, tiempoActual + 0.25);
+                oscilador.frequency.linearRampToValueAtTime(550, tiempoActual + 0.5);
+                oscilador.frequency.linearRampToValueAtTime(1050, tiempoActual + 0.75);
+                oscilador.frequency.linearRampToValueAtTime(550, tiempoActual + 1.0);
                 
-                ganancia.gain.setValueAtTime(0.3, tiempoActual);
-                ganancia.gain.linearRampToValueAtTime(0.3, tiempoActual + duracionTotal - 0.1);
-                ganancia.gain.exponentialRampToValueAtTime(0.01, tiempoActual + duracionTotal);
+                ganancia.gain.setValueAtTime(0.4, tiempoActual);
+                ganancia.gain.linearRampToValueAtTime(0.4, tiempoActual + duracion - 0.05);
+                ganancia.gain.exponentialRampToValueAtTime(0.001, tiempoActual + duracion);
                 
                 oscilador.connect(ganancia);
                 ganancia.connect(audioContextNativo.destination);
                 
-                oscilador.start();
-                oscilador.stop(tiempoActual + duracionTotal);
+                oscilador.start(tiempoActual);
+                oscilador.stop(tiempoActual + duracion);
             } catch (err) {
-                console.error(err);
+                console.error("Hardware audio collision:", err);
             }
         }
 
@@ -244,14 +230,14 @@
         function arrancarBucleDeTimbreContinuo() {
             if (bucleAlarmaSonora !== null || !interactuadoFisicamente) return;
             
-            // Ejecuta el ciclo completo de la sirena (1.2 segundos de duración) continuamente
+            // Dispara el ciclo continuo de la sirena (1.0 segundo de duración) cada 1.05 segundos repetidamente
             bucleAlarmaSonora = setInterval(() => {
                 if (alarmasActivasMapeadas.size === 0) {
                     pararBucleDeTimbreCompleto();
                     return;
                 }
-                emitirOndaSirenaPolicia(1.2);
-            }, 1250);
+                forzarSirenaMovil(1.0);
+            }, 1050);
         }
 
         function pararBucleDeTimbreCompleto() {
@@ -288,7 +274,7 @@
 
     <script>
         function nyomtatBlokk(id, address, items, notes) {
-            // Apaga la sirena para este pedido específico al darle a imprimir
+            // Apaga el set ruidoso al presionar el botón de impresión térmica
             alarmasActivasMapeadas.delete(Number(id));
             if (alarmasActivasMapeadas.size === 0) {
                 pararBucleDeTimbreCompleto();
