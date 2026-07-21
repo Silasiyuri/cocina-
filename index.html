@@ -70,24 +70,42 @@
 
     <div class="grid-rendelesek" id="kont-rendelesek"></div>
     <div id="nyomtatas-terulet"></div>
-    <script>
+       <script>
         const ID_PROYECTO = "kpxcpkzmquqyduadnahz";
         const SUPABASE_KEY = "sb_publishable_XMm1hlrSBzm8iyLWM1iqCA__qBE79B3";
         let utolsoRendelesDarab = 0;
         let audioContextNativo = null;
         
-        // Variables de control para el timbre ininterrumpido
         let bucleAlarmaSonora = null;
         let alarmasActivasMapeadas = new Set(); 
+        let interactuadoFisicamente = false;
 
+        // 📱 DESPERTADOR EN CADENA: Indispensable para saltarse el bloqueo de Android/iPad
         window.desbloquearSonido = function() {
             const btn = document.getElementById('btnAudioDesbloqueo');
+            interactuadoFisicamente = true;
+            
             try {
+                // 1. Despierta el motor de sonido de hardware
                 window.AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioContextNativo = new AudioContext();
+                if (audioContextNativo.state === 'suspended') {
+                    audioContextNativo.resume();
+                }
+                
+                // 2. Despierta el reproductor de archivos del navegador
+                const audioNativo = document.getElementById('audio-riaszto');
+                if (audioNativo) {
+                    audioNativo.play().then(() => {
+                        audioNativo.pause();
+                        audioNativo.currentTime = 0;
+                    }).catch(e => console.log("Audio file wake error"));
+                }
+
                 forzarPitidoCocina(800, 0.1);
+                
                 if (btn) {
-                    btn.innerText = "🟢 HANG AKTÍV (Bucle listo)";
+                    btn.innerText = "🟢 HANG AKTÍV (Táblagép kész)";
                     btn.className = "btn-audio-unblock active";
                 }
             } catch (e) {
@@ -98,16 +116,20 @@
         function forzarPitidoCocina(frecuencia, duracion) {
             if (!audioContextNativo) return;
             try {
+                // Si la tablet suspendió el audio por inactividad, lo reanudamos a la fuerza
+                if (audioContextNativo.state === 'suspended') {
+                    audioContextNativo.resume();
+                }
                 const oscilador = audioContextNativo.createOscillator();
                 const ganancia = audioContextNativo.createGain();
                 oscilador.type = 'sine';
                 oscilador.frequency.value = frecuencia;
-                ganancia.gain.setValueAtTime(0.4, audioContextNativo.currentTime);
+                ganancia.gain.setValueAtTime(0.5, audioContextNativo.currentTime);
                 ganancia.gain.exponentialRampToValueAtTime(0.01, audioContextNativo.currentTime + duracion);
                 oscilador.connect(ganancia);
                 ganancia.connect(audioContextNativo.destination);
                 oscilador.start();
-                oscilador.stop(audioContextNativo.currentTime + duracion);
+                oscidador.stop(audioContextNativo.currentTime + duracion);
             } catch (err) {
                 console.error(err);
             }
@@ -184,16 +206,17 @@
             }
         }
         function arrancarBucleDeTimbreContinuo() {
-            if (bucleAlarmaSonora !== null || !audioContextNativo) return;
+            if (bucleAlarmaSonora !== null || !interactuadoFisicamente) return;
             
             bucleAlarmaSonora = setInterval(() => {
                 if (alarmasActivasMapeadas.size === 0) {
                     pararBucleDeTimbreCompleto();
                     return;
                 }
-                forzarPitidoCocina(950, 0.25);
-                setTimeout(() => forzarPitidoCocina(950, 0.25), 300);
-            }, 1200);
+                // Secuencia repetitiva agresiva para alertar al cocinero en la tablet
+                forzarPitidoCocina(980, 0.25);
+                setTimeout(() => forzarPitidoCocina(980, 0.25), 300);
+            }, 1250);
         }
 
         function pararBucleDeTimbreCompleto() {
