@@ -1,9 +1,9 @@
-   <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2NIGHT - Konyhai Panel (Automata Nyomtatás)</title>
+    <title>2NIGHT - Konyhai Monitor</title>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
@@ -18,19 +18,23 @@
         .tetelek { white-space: pre-wrap; font-size: 1.1rem; background: #0f172a; padding: 10px; border-radius: 4px; border-left: 3px solid #3ecf8e; margin-bottom: 10px; color: #fff; }
         .megjegyzes { font-style: italic; color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; }
         
-        .kartya.szirénázik { border: 2px solid #ef4444; animation: riasztoKartya 1s infinite alternate; }
+        /* ALERTA CRÍTICA: Parpadeo de emergencia si la sirena está sonando */
+        .kartya.szirénázik { border: 2px solid #ef4444; animation: riasztoKartya 0.8s infinite alternate; }
         @keyframes riasztoKartya {
             0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); background: #1e293b; }
-            100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); background: #2d1e24; }
+            100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.7); background: #3b111a; }
         }
 
         .gombok { display: flex; gap: 10px; }
-        button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
         .btn-nyomtatas { background: #3b82f6; color: white; }
         .btn-kesz { background: #3ecf8e; color: white; }
         
-        .btn-audio-unblock { background: #eab308; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; border: none; }
-        .btn-audio-unblock.active { background: #3ecf8e; color: #fff; }
+        .btn-audio-unblock { background: #eab308; color: #000; padding: 10px 20px; border-radius: 20px; font-size: 0.95rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; border: none; box-shadow: 0 0 15px rgba(234,179,8,0.4); }
+        .btn-audio-unblock.active { background: #3ecf8e; color: #fff; box-shadow: none; }
+
+        /* Contenedor invisible para la inyección forzada de impresión en el hardware */
+        #nyomtatas-terulet-escondido { display: none; }
     </style>
 </head>
 <body>
@@ -38,68 +42,75 @@
     <header>
         <h1>
             👨‍🍳 Konyhai Monitor 
-            <button id="btnAudioDesbloqueo" class="btn-audio-unblock" onclick="desbloquearSonido()">🔔 HANG AKTIVÁLÁSA</button>
+            <button id="btnAudioDesbloqueo" class="btn-audio-unblock" onclick="desbloquearSirenaMovel()">⚠️ HANG ÉS NYOMTATÁS ENGEDÉLYEZÉSE</button>
         </h1>
         <div id="kapcsolat-statusz" style="color: #64748b;">Kapcsolódás...</div>
     </header>
 
-    <audio id="audio-riaszto" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
-
     <div class="grid-rendelesek" id="kont-rendelesek"></div>
+    <div id="nyomtatas-terulet-escondido"></div>
     <script>
         const ID_PROYECTO = "kpxcpkzmquqyduadnahz";
         const SUPABASE_KEY = "sb_publishable_XMm1hlrSBzm8iyLWM1iqCA__qBE79B3";
         let utolsoRendelesDarab = 0;
-        let audioContextNativo = null;
+        let chipSonidoHardware = null;
         
-        let bucleAlarmaSonora = null;
+        let bucleSirenaEmergencia = null;
         let alarmasActivasMapeadas = new Set(); 
-        let interactuadoFisicamente = false;
+        let tabletAutorizadaFisicamente = false;
 
-        window.desbloquearSonido = function() {
+        // DESBLOQUEO GENERAL DE HARDWARE: Despierta los altavoces móviles
+        window.desbloquearSirenaMovel = function() {
             const btn = document.getElementById('btnAudioDesbloqueo');
-            interactuadoFisicamente = true;
+            tabletAutorizadaFisicamente = true;
             try {
                 window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioContextNativo = new AudioContext();
-                if (audioContextNativo.state === 'suspended') audioContextNativo.resume();
-                forzarSirenaMovil(0.1);
+                chipSonidoHardware = new AudioContext();
+                if (chipSonidoHardware.state === 'suspended') {
+                    chipSonidoHardware.resume();
+                }
+                
+                // Genera una micro-onda inmediata para avisar que la tablet está sincronizada
+                ejecutarTonoSirenaFisico(440, 0.1);
+                
                 if (btn) {
-                    btn.innerText = "🟢 MONITOR RENDIKBEN";
+                    btn.innerText = "🟢 RENDSZER AKTÍV (Sziréna & Nyomtatás kész)";
                     btn.className = "btn-audio-unblock active";
                 }
             } catch (e) {
-                alert("Hiba a hangmotor indításakor.");
+                alert("Hiba történt a hangmotor indításakor.");
             }
         };
 
-        function forzarSirenaMovil(duracion) {
-            if (!audioContextNativo) return;
+        // ENTRADA DE AUDIO ANALÓGICA: Sube y baja de frecuencia de forma continua (Sirena real)
+        function ejecutarTonoSirenaFisico(frecuencia, duracion) {
+            if (!chipSonidoHardware) return;
             try {
-                if (audioContextNativo.state === 'suspended') audioContextNativo.resume();
-                const oscilador = audioContextNativo.createOscillator();
-                const ganancia = audioContextNativo.createGain();
+                if (chipSonidoHardware.state === 'suspended') chipSonidoHardware.resume();
+                
+                const oscilador = chipSonidoHardware.createOscillator();
+                const nodoGanancia = chipSonidoHardware.createGain();
+                
                 oscilador.type = 'sawtooth'; 
-                const tiempoActual = audioContextNativo.currentTime;
+                const tiempoActual = chipSonidoHardware.currentTime;
                 
-                oscilador.frequency.setValueAtTime(550, tiempoActual);
-                oscilador.frequency.linearRampToValueAtTime(1050, tiempoActual + 0.25);
-                oscilador.frequency.linearRampToValueAtTime(550, tiempoActual + 0.5);
-                oscilador.frequency.linearRampToValueAtTime(1050, tiempoActual + 0.75);
-                oscilador.frequency.linearRampToValueAtTime(550, tiempoActual + 1.0);
+                // Modulación de frecuencia: simula el efecto de subida y bajada de una sirena real
+                oscilador.frequency.setValueAtTime(frecuencia, tiempoActual);
+                oscilador.frequency.linearRampToValueAtTime(frecuencia + 400, tiempoActual + (duracion / 2));
+                oscilador.frequency.linearRampToValueAtTime(frecuencia, tiempoActual + duracion);
                 
-                ganancia.gain.setValueAtTime(0.4, tiempoActual);
-                ganancia.gain.linearRampToValueAtTime(0.4, tiempoActual + duracion - 0.05);
-                ganancia.gain.exponentialRampToValueAtTime(0.001, tiempoActual + duracion);
+                nodoGanancia.gain.setValueAtTime(0.5, tiempoActual);
+                nodoGanancia.gain.exponentialRampToValueAtTime(0.001, tiempoActual + duracion);
                 
-                oscilador.connect(ganancia);
-                ganancia.connect(audioContextNativo.destination);
+                oscilador.connect(nodoGanancia);
+                nodoGanancia.connect(chipSonidoHardware.destination);
                 oscilador.start(tiempoActual);
                 oscilador.stop(tiempoActual + duracion);
             } catch (err) {
                 console.error(err);
             }
         }
+
         async function betoltRendelesek() {
             const statuszId = document.getElementById('kapcsolat-statusz');
             const urlEndpoint = `https://${ID_PROYECTO}.supabase.co/rest/v1/rpc/leer_comandas_activas`;
@@ -124,7 +135,7 @@
                             alarmasActivasMapeadas.add(Number(r.id));
                         }
                     });
-                    arrancarBucleDeTimbreContinuo();
+                    arrancarBucleSirenaInfinita();
                 }
                 utolsoRendelesDarab = rendelések.length;
 
@@ -133,7 +144,7 @@
 
                 if (rendelések.length === 0) {
                     kont.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-size: 1.2rem; margin-top: 50px;">Nincs aktív rendelés a konyhán. 🙌</p>`;
-                    pararBucleDeTimbreCompleto();
+                    pararBucleSirena();
                     return;
                 }
 
@@ -155,7 +166,7 @@
                                 ${r.total_price ? `<div style="color:#d6af37; font-weight:bold; margin-top:5px;">💰 Összeg: ${r.total_price} Ft</div>` : ''}
                             </div>
                             <div class="gombok">
-                                <button class="btn-nyomtatas" onclick="automatizaltNyomtatasBypass(${r.id}, '${escapeHtml(r.address || '')}', '${escapeHtml(r.items || '')}', '${escapeHtml(r.notes || '')}')">🖨️ Blokksütés</button>
+                                <button class="btn-nyomtatas" onclick="imprimirDirectoYApagarSirena(${r.id}, '${escapeHtml(r.address || '')}', '${escapeHtml(r.items || '')}', '${escapeHtml(r.notes || '')}')">🖨️ Blokksütés</button>
                                 <button class="btn-kesz" onclick="rendelesKesz(${r.id})">✅ Kész</button>
                             </div>
                         </div>
@@ -170,27 +181,28 @@
                 }
             }
         }
-        function arrancarBucleDeTimbreContinuo() {
-            if (bucleAlarmaSonora !== null || !interactuadoFisicamente) return;
-            bucleAlarmaSonora = setInterval(() => {
+        function arrancarBucleSirenaInfinita() {
+            if (bucleSirenaEmergencia !== null || !tabletAutorizadaFisicamente) return;
+            
+            bucleSirenaEmergencia = setInterval(() => {
                 if (alarmasActivasMapeadas.size === 0) {
-                    pararBucleDeTimbreCompleto();
+                    pararBucleSirena();
                     return;
                 }
-                forzarSirenaMovil(1.0);
-            }, 1050);
+                ejecutarTonoSirenaFisico(550, 0.95);
+            }, 1000);
         }
 
-        function pararBucleDeTimbreCompleto() {
-            if (bucleAlarmaSonora !== null) {
-                clearInterval(bucleAlarmaSonora);
-                bucleAlarmaSonora = null;
+        function pararBucleSirena() {
+            if (bucleSirenaEmergencia !== null) {
+                clearInterval(bucleSirenaEmergencia);
+                bucleSirenaEmergencia = null;
             }
         }
 
         window.rendelesKesz = async function(id) {
             alarmasActivasMapeadas.delete(Number(id));
-            if (alarmasActivasMapeadas.size === 0) pararBucleDeTimbreCompleto();
+            if (alarmasActivasMapeadas.size === 0) pararBucleSirena();
 
             const urlUpdate = `https://${ID_PROYECTO}.supabase.co/rest/v1/comandas?id=eq.${id}`;
             try {
@@ -209,15 +221,18 @@
             return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;').replace(/\n/g, '\\n');
         }
 
-        window.automatizaltNyomtatasBypass = function(id, address, items, notes) {
+        // ==========================================================================
+        // 🖨️ MOTOR DE IMPRESIÓN DIRECTA POR ENCAPSULAMIENTO DE CANAL DE HARDWARE
+        // ==========================================================================
+        window.imprimirDirectoYApagarSirena = function(id, address, items, notes) {
             alarmasActivasMapeadas.delete(Number(id));
-            if (alarmasActivasMapeadas.size === 0) pararBucleDeTimbreCompleto();
+            if (alarmasActivasMapeadas.size === 0) pararBucleSirena();
+            
             const tarjetaGrafica = document.getElementById(`rendeles-${id}`);
             if (tarjetaGrafica) tarjetaGrafica.classList.remove('szirénázik');
 
-            const textoLimpioItems = items.replace(/\\n/g, '\n');
-
-            const contenidoTicketRaw = 
+            const textoPlanoItems = items.replace(/\\n/g, '\n');
+            const estructuraTicketRaw = 
                 `*** 2NIGHT PIZZA ***\n` +
                 `RENDELESI BLOKK\n` +
                 `--------------------------------\n` +
@@ -226,30 +241,26 @@
                 `--------------------------------\n` +
                 `Cim / Atvetel:\n${address}\n` +
                 `--------------------------------\n` +
-                `TETELEK:\n${textoLimpioItems}\n` +
+                `TETELEK:\n${textoPlanoItems}\n` +
                 `${notes ? `--------------------------------\nMegjegyzes:\n${notes}\n` : ''}` +
                 `--------------------------------\n` +
                 `JO ETVAGYAT! JO MUNKAT!\n\n\n\n`;
 
-            const blobTicket = new Blob([contenidoTicketRaw], { type: 'text/plain;charset=utf-8' });
-            const urlIframeImpresion = URL.createObjectURL(blobTicket);
-            
-            const constructorCanal = document.createElement('iframe');
-            constructorCanal.style.position = 'fixed';
-            constructorCanal.style.right = '0';
-            constructorCanal.style.bottom = '0';
-            constructorCanal.style.width = '0';
-            constructorCanal.style.height = '0';
-            constructorCanal.style.border = '0';
-            constructorCanal.src = urlIframeImpresion;
-            
-            document.body.appendChild(constructorCanal);
-            
-            constructorCanal.contentWindow.addEventListener('DOMContentLoaded', () => {
-                constructorCanal.contentWindow.focus();
-                constructorCanal.contentWindow.print();
-                setTimeout(() => document.body.removeChild(constructorCanal), 1000);
-            });
+            const contContenedor = document.getElementById('nyomtatas-terulet-escondido');
+            if (contContenedor) {
+                contContenedor.innerHTML = `<iframe id="pasarela-impresion-silenciosa" src="about:blank"></iframe>`;
+                const iframeElemento = document.getElementById('pasarela-impresion-silenciosa');
+                const docIframe = iframeElemento.contentWindow.document;
+                
+                docIframe.open();
+                docIframe.write(`<pre style="font-family:monospace; font-size:14px; color:black; margin:0; padding:10px;">${estructuraTicketRaw}</pre>`);
+                docIframe.close();
+
+                setTimeout(() => {
+                    iframeElemento.contentWindow.focus();
+                    iframeElemento.contentWindow.print();
+                }, 200);
+            }
         };
 
         betoltRendelesek();
